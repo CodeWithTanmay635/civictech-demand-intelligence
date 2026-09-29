@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Optional
 
 class Coordinates(BaseModel):
     latitude: float
@@ -8,16 +8,24 @@ class Coordinates(BaseModel):
 
 class Alternative(BaseModel):
     id: str
-    values: List[float]
+    values: Dict[str, float]
 
 class DecisionMatrix(BaseModel):
     criteria: List[str]
     alternatives: List[Alternative]
 
+class TopsisMetrics(BaseModel):
+    distance_to_positive: float
+    distance_to_negative: float
+    closeness_coefficient: float
+
 class RankedItem(BaseModel):
     id: str
-    topsis_score: float
     rank: int
+    priority_score: float
+    criteria: Dict[str, float]
+    ahp_weights: Dict[str, float]
+    topsis: TopsisMetrics
 
 class SemanticRequest(BaseModel):
     text: str
