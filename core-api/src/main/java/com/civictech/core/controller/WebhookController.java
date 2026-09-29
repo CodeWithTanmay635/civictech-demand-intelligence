@@ -36,6 +36,28 @@ public class WebhookController {
             feedback.setLongitude(payload.getLocation().getLongitude());
         }
         feedback.setFeedbackText(payload.getFeedbackText());
+
+        // Perform Semantic Analysis
+        try {
+            Map<String, String> semReq = new HashMap<>();
+            semReq.put("text", payload.getFeedbackText());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> semRes = (Map<String, Object>) restTemplate.postForObject("http://localhost:8000/api/v1/ai/semantic/analyze", semReq, Map.class);
+            if (semRes != null) {
+                feedback.setLanguage((String) semRes.get("detected_language"));
+                feedback.setOriginalText((String) semRes.get("original_text"));
+                feedback.setNormalizedText((String) semRes.get("normalized_text"));
+                @SuppressWarnings("unchecked")
+                List<Double> embList = (List<Double>) semRes.get("embedding");
+                if (embList != null) {
+                    feedback.setEmbedding(embList.toArray(new Double[0]));
+                }
+            }
+        } catch (Exception e) {
+            // Ignore API call errors to FastAPI for demo
+            feedback.setOriginalText(payload.getFeedbackText());
+        }
+
         repository.save(feedback);
         return ResponseEntity.accepted().body("Payload accepted for processing");
     }

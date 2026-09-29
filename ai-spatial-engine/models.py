@@ -18,3 +18,12 @@ class RankedItem(BaseModel):
     id: str
     topsis_score: float
     rank: int
+
+class SemanticRequest(BaseModel):
+    text: str
+
+class SemanticResponse(BaseModel):
+    detected_language: str
+    original_text: str
+    normalized_text: str
+    embedding: List[float]

@@ -22,8 +22,18 @@ public class CitizenFeedback {
     
     @Column(columnDefinition = "TEXT")
     private String feedbackText;
+
+    private String language;
     
-    // For pgvector, we would use a native query or a specialized library to handle the vector column type
-    // @Column(columnDefinition = "vector(384)")
-    // private float[] embedding;
+    @Column(columnDefinition = "TEXT")
+    private String originalText;
+    
+    @Column(columnDefinition = "TEXT")
+    private String translatedText;
+    
+    @Column(columnDefinition = "TEXT")
+    private String normalizedText;
+    
+    @Column(columnDefinition = "float8[]")
+    private Double[] embedding;
 }

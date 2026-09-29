@@ -28,3 +28,33 @@ def run_prioritization(matrix) -> list:
         res["rank"] = i + 1
         
     return results
+
+try:
+    from langdetect import detect
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+except ImportError:
+    model = None
+
+def analyze_semantics(text: str) -> dict:
+    detected_lang = "en"
+    try:
+        if model is not None:
+            detected_lang = detect(text)
+    except:
+        detected_lang = "unknown"
+    
+    normalized = text.lower().strip()
+    
+    embedding = []
+    if model is not None:
+        embedding = model.encode(text).tolist()
+    else:
+        embedding = [0.0] * 384
+        
+    return {
+        "detected_language": detected_lang,
+        "original_text": text,
+        "normalized_text": normalized,
+        "embedding": embedding
+    }

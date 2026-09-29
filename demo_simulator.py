@@ -6,23 +6,35 @@ import json
 
 URL = "http://localhost:8081/api/v1/webhooks/citizen-feedback"
 
-# Bounding box around San Francisco
-LAT_MIN, LAT_MAX = 37.7, 37.8
-LNG_MIN, LNG_MAX = -122.5, -122.3
+# Mumbai Bounding Box
+LAT_MIN, LAT_MAX = 18.9, 19.2
+LNG_MIN, LNG_MAX = 72.8, 72.9
 
 feedbacks = [
-    "Pothole completely destroying cars on Main St.",
-    "No streetlights working here for weeks.",
-    "Water main break causing flooding.",
-    "Traffic lights are down at the intersection.",
-    "Power outage in this entire block."
+    "Road is full of potholes",
+    "रस्ता खराब आहे", # Road is bad (Marathi)
+    "सड़क बहुत खराब है", # Road is very bad (Hindi)
+    "No water supply since yesterday",
+    "कालपासून पाणी नाही", # No water since yesterday (Marathi)
+    "कल से पानी नहीं आ रहा है", # Water not coming since yesterday (Hindi)
+    "Clinic has no doctors available",
+    "दवाखान्यात डॉक्टर नाहीत", # No doctors in clinic (Marathi)
+    "अस्पताल में डॉक्टर नहीं हैं", # No doctors in hospital (Hindi)
+    "Garbage not collected for a week",
+    "कचरा उचलला नाही", # Garbage not picked up (Marathi)
+    "कूड़ा नहीं उठाया गया है", # Garbage not picked up (Hindi)
+    "School building needs repair",
+    "शाळेची इमारत दुरुस्त करा", # Repair school building (Marathi)
+    "स्कूल की इमारत की मरम्मत चाहिए" # School building needs repair (Hindi)
 ]
 
-print("Starting demo simulator...")
-for i in range(500):
+platforms = ["WHATSAPP_SIMULATED", "VOICE_SIMULATED", "RapidPro"]
+
+print("Starting multilingual semantic demo simulator...")
+for i in range(100):
     payload = {
         "message_id": f"sim_msg_{i}",
-        "source_platform": "RapidPro",
+        "source_platform": random.choice(platforms),
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "location": {
             "latitude": round(random.uniform(LAT_MIN, LAT_MAX), 6),
@@ -33,11 +45,11 @@ for i in range(500):
     }
     
     try:
-        response = requests.post(URL, json=payload, timeout=2)
-        print(f"[{i+1}/500] Posted {payload['message_id']} - Status: {response.status_code}")
+        response = requests.post(URL, json=payload, timeout=5)
+        print(f"[{i+1}/100] Posted {payload['message_id']} - Status: {response.status_code}")
     except requests.exceptions.RequestException as e:
-        print(f"[{i+1}/500] Failed to post: {e}")
+        print(f"[{i+1}/100] Failed to post: {e}")
         
-    time.sleep(0.05) # Rapidly post
+    time.sleep(0.5)
 
 print("Simulation complete.")
