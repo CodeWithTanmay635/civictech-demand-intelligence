@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+h3
+topsisx
+pydantic
+numpy
