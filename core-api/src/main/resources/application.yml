@@ -1,13 +1,14 @@
 spring:
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/civictech
-    username: postgres
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/civictech}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}

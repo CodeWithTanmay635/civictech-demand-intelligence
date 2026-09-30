@@ -1,0 +1,73 @@
+services:
+  # ── 1. Frontend — React/Vite Static Site ──────────────────────────────────
+  - type: web
+    name: civictech-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false   # set manually in Render dashboard
+      - key: VITE_AI_ENGINE_URL
+        sync: false   # set manually in Render dashboard
+
+  # ── 2. Core API — Spring Boot ──────────────────────────────────────────────
+  - type: web
+    name: civictech-core-api
+    runtime: java
+    region: singapore
+    plan: free
+    buildCommand: cd core-api && mvn -B -DskipTests package
+    startCommand: java -jar core-api/target/core-api-0.0.1-SNAPSHOT.jar
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: civictech-postgres
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: civictech-postgres
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: civictech-postgres
+          property: password
+      - key: SERVER_PORT
+        value: "10000"
+      - key: AI_ENGINE_URL
+        fromService:
+          name: civictech-ai-engine
+          type: web
+          property: host
+
+  # ── 3. AI Spatial Engine — FastAPI (Python) ────────────────────────────────
+  - type: web
+    name: civictech-ai-engine
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: ai-spatial-engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /docs
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+# ── PostgreSQL Managed Database ────────────────────────────────────────────────
+databases:
+  - name: civictech-postgres
+    region: singapore
+    plan: free
+    databaseName: civictech
+    user: postgres

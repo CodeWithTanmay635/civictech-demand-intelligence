@@ -1,6 +1,6 @@
-fastapi
-uvicorn
-h3
-topsisx
-pydantic
-numpy
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
+h3==4.2.2
+topsisx==0.1.2
+pydantic==2.11.3
+numpy==2.2.5

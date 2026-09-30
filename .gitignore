@@ -3,6 +3,12 @@ node_modules/
 dist/
 build/
 .env
+.env.local
+.env.production
+
+# Local dev databases
+*.db
+*.sqlite
 
 # Python
 __pycache__/
