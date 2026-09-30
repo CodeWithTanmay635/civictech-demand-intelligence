@@ -179,7 +179,7 @@ export default function MapView({ activeLayers, selectedProjectId, onSelectProje
         initialViewState={viewState}
         controller={true}
         onViewStateChange={({ viewState: vs }: any) => setViewState(vs as typeof INITIAL_VIEW_STATE)}
-        style={{ zIndex: 1 }}
+        style={{ zIndex: '1' }}
       >
         <Map
           {...viewState}

@@ -4,7 +4,7 @@ import com.civictech.core.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+
 
 import java.util.*;
 
@@ -25,7 +25,7 @@ public class ImpactController {
     @Autowired
     private WebhookController webhookController;
 
-    private RestTemplate restTemplate = new RestTemplate();
+
 
     @PostMapping("/{id}/simulate-impact")
     public ResponseEntity<?> simulateImpact(@PathVariable("id") long id) {
@@ -41,9 +41,11 @@ public class ImpactController {
         List<InfrastructureData> infraList = infraRepo.findByH3Index(hex);
         double baselineCondition = 0.5;
         if (!infraList.isEmpty()) {
-            baselineCondition = infraList.stream()
+            @SuppressWarnings("null")
+            double avg = infraList.stream()
                 .mapToDouble(InfrastructureData::getConditionScore)
                 .average().orElse(0.5);
+            baselineCondition = avg;
         }
         double baselineDeficit = 1.0 - baselineCondition;
 
@@ -52,8 +54,9 @@ public class ImpactController {
         try {
             // Re-use the cached hotspot response from WebhookController
             var hotspotsResp = webhookController.getHotspots();
-            if (hotspotsResp.getBody() != null) {
-                for (Map<String, Object> hotspot : hotspotsResp.getBody()) {
+            List<Map<String, Object>> hotspots = hotspotsResp.getBody();
+            if (hotspots != null) {
+                for (Map<String, Object> hotspot : hotspots) {
                     if (hex.equals(hotspot.get("hex"))) {
                         Object count = hotspot.get("count");
                         if (count instanceof Number) {
