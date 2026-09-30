@@ -58,7 +58,7 @@ services:
     name: civictech-ai-engine
     runtime: python
     region: singapore
-    plan: free
+    plan: 1c-2g
     rootDir: ai-spatial-engine
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
