@@ -30,8 +30,15 @@ public class RecommendationController {
 
     private RestTemplate restTemplate = new RestTemplate();
 
+    private List<?> cachedRecommendations = null;
+    private long lastRecCacheTime = 0;
+
     @GetMapping("/projects/recommendations")
     public ResponseEntity<?> getRecommendations(@RequestParam(defaultValue = "10") int limit) {
+        if (cachedRecommendations != null && System.currentTimeMillis() - lastRecCacheTime < 300000) {
+            return ResponseEntity.ok(cachedRecommendations.subList(0, Math.min(limit, cachedRecommendations.size())));
+        }
+        
         // 1. Gather all unique H3 indices and calculate criteria
         List<DemographicData> allDemographics = demographicRepo.findAll();
         Map<String, Map<String, Double>> h3CriteriaMap = new HashMap<>();
@@ -46,7 +53,7 @@ public class RecommendationController {
                 req.put("longitude", fb.getLongitude());
                 req.put("resolution", 9);
                 try {
-                    Map<?, ?> res = restTemplate.postForObject("http://localhost:8000/api/v1/spatial/h3-index", req, Map.class);
+                    Map<?, ?> res = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/spatial/h3-index", req, Map.class);
                     if (res != null && res.containsKey("h3_index")) {
                         String hex = (String) res.get("h3_index");
                         demandCounts.put(hex, demandCounts.getOrDefault(hex, 0) + 1);
@@ -112,13 +119,10 @@ public class RecommendationController {
         
         // 3. Call TOPSIS Endpoint
         try {
-            List<?> responseList = restTemplate.postForObject("http://localhost:8000/api/v1/ai/prioritize", matrix, List.class);
+            List<?> responseList = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/ai/prioritize", matrix, List.class);
             
             List<Map<String, Object>> enrichedResults = new ArrayList<>();
             if (responseList != null) {
-                // Clear old recommendations for demo reproducibility
-                projectRepo.deleteAll();
-                
                 int count = 0;
                 for (Object itemObj : responseList) {
                     if (count >= limit) break;
@@ -170,9 +174,9 @@ public class RecommendationController {
                     count++;
                 }
             }
-            
+            cachedRecommendations = enrichedResults;
+            lastRecCacheTime = System.currentTimeMillis();
             return ResponseEntity.ok(enrichedResults);
-            
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error running decision engine: " + e.getMessage());

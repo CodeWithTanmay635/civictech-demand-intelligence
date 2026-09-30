@@ -17,13 +17,13 @@ public class ImpactController {
     private RecommendedProjectRepository projectRepo;
 
     @Autowired
-    private CitizenFeedbackRepository feedbackRepo;
-
-    @Autowired
     private DemographicDataRepository demographicRepo;
 
     @Autowired
     private InfrastructureDataRepository infraRepo;
+
+    @Autowired
+    private WebhookController webhookController;
 
     private RestTemplate restTemplate = new RestTemplate();
 
@@ -33,50 +33,54 @@ public class ImpactController {
         if (optProject.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        
+
         RecommendedProject project = optProject.get();
         String hex = project.getH3Index();
 
-        // 1. Gather Baseline Data
-        // Infrastructure
+        // 1. Infrastructure baseline from DB (fast, no FastAPI call)
         List<InfrastructureData> infraList = infraRepo.findByH3Index(hex);
         double baselineCondition = 0.5;
         if (!infraList.isEmpty()) {
-            baselineCondition = infraList.stream().mapToDouble(infra -> infra.getConditionScore()).average().orElse(0.5);
+            baselineCondition = infraList.stream()
+                .mapToDouble(InfrastructureData::getConditionScore)
+                .average().orElse(0.5);
         }
         double baselineDeficit = 1.0 - baselineCondition;
 
-        // Citizen Demand
-        List<CitizenFeedback> feedbacks = feedbackRepo.findAll();
+        // 2. Citizen demand from cached hotspot list (avoids N+1 FastAPI calls)
         int baselineDemand = 0;
-        for (CitizenFeedback fb : feedbacks) {
-            if (fb.getLatitude() != null && fb.getLongitude() != null) {
-                Map<String, Object> req = new HashMap<>();
-                req.put("latitude", fb.getLatitude());
-                req.put("longitude", fb.getLongitude());
-                req.put("resolution", 9);
-                try {
-                    Map<?, ?> res = restTemplate.postForObject("http://localhost:8000/api/v1/spatial/h3-index", req, Map.class);
-                    if (res != null && res.containsKey("h3_index") && hex.equals(res.get("h3_index"))) {
-                        baselineDemand++;
+        try {
+            // Re-use the cached hotspot response from WebhookController
+            var hotspotsResp = webhookController.getHotspots();
+            if (hotspotsResp.getBody() != null) {
+                for (Map<String, Object> hotspot : hotspotsResp.getBody()) {
+                    if (hex.equals(hotspot.get("hex"))) {
+                        Object count = hotspot.get("count");
+                        if (count instanceof Number) {
+                            baselineDemand = ((Number) count).intValue();
+                        }
+                        break;
                     }
-                } catch (Exception e) {}
+                }
             }
+        } catch (Exception e) {
+            // Fallback: use 0 demand if cache not available
+            baselineDemand = 0;
         }
 
-        // Demographics
+        // 3. Demographics
         Optional<DemographicData> optDemo = demographicRepo.findByH3Index(hex);
         int population = optDemo.isPresent() ? optDemo.get().getPopulation() : 0;
 
-        // 2. Apply Deterministic Simulation Logic
-        double conditionImprovement = 0.35; // e.g., 35% improvement
-        double demandReductionFactor = 0.50; // e.g., 50% reduction in complaints
+        // 4. Deterministic simulation
+        double conditionImprovement = 0.35;
+        double demandReductionFactor = 0.50;
 
         double projectedCondition = Math.min(baselineCondition + conditionImprovement, 1.0);
         double projectedDeficit = 1.0 - projectedCondition;
         int projectedDemand = (int) Math.max(baselineDemand * demandReductionFactor, 0);
 
-        // 3. Format Response
+        // 5. Build response
         Map<String, Object> response = new HashMap<>();
         response.put("project_id", project.getId());
         response.put("project_type", project.getProjectType());
@@ -103,13 +107,13 @@ public class ImpactController {
         simulation.put("baseline", baseline);
         simulation.put("projected", projected);
         simulation.put("change", change);
-        
+
         response.put("simulation", simulation);
 
         List<String> assumptions = Arrays.asList(
             "Simulation uses synthetic demonstration data.",
-            "Intervention is assumed to improve relevant infrastructure condition deterministically by +0.35.",
-            "Citizen demand is assumed to decrease proportionally (by 50%) after intervention.",
+            "Intervention improves infrastructure condition deterministically by +0.35.",
+            "Citizen demand decreases by 50% after intervention.",
             "This simulation is not a real-world impact forecast."
         );
         response.put("assumptions", assumptions);

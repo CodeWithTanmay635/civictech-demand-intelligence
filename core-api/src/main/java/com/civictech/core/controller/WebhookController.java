@@ -42,7 +42,7 @@ public class WebhookController {
             Map<String, String> semReq = new HashMap<>();
             semReq.put("text", payload.getFeedbackText());
             @SuppressWarnings("unchecked")
-            Map<String, Object> semRes = (Map<String, Object>) restTemplate.postForObject("http://localhost:8000/api/v1/ai/semantic/analyze", semReq, Map.class);
+            Map<String, Object> semRes = (Map<String, Object>) restTemplate.postForObject("http://127.0.0.1:8000/api/v1/ai/semantic/analyze", semReq, Map.class);
             if (semRes != null) {
                 feedback.setLanguage((String) semRes.get("detected_language"));
                 feedback.setOriginalText((String) semRes.get("original_text"));
@@ -62,8 +62,15 @@ public class WebhookController {
         return ResponseEntity.accepted().body("Payload accepted for processing");
     }
 
+    private List<Map<String, Object>> cachedHotspots = null;
+    private long lastCacheTime = 0;
+
     @GetMapping("/hotspots")
     public ResponseEntity<List<Map<String, Object>>> getHotspots() {
+        if (cachedHotspots != null && System.currentTimeMillis() - lastCacheTime < 300000) {
+            return ResponseEntity.ok(cachedHotspots);
+        }
+        
         List<CitizenFeedback> feedbacks = repository.findAll();
         Map<String, Integer> hexCounts = new HashMap<>();
         
@@ -74,7 +81,7 @@ public class WebhookController {
             req.put("longitude", fb.getLongitude());
             req.put("resolution", 9);
             try {
-                Map<?, ?> res = restTemplate.postForObject("http://localhost:8000/api/v1/spatial/h3-index", req, Map.class);
+                Map<?, ?> res = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/spatial/h3-index", req, Map.class);
                 if (res != null && res.containsKey("h3_index")) {
                     String hex = (String) res.get("h3_index");
                     hexCounts.put(hex, hexCounts.getOrDefault(hex, 0) + 1);
@@ -91,13 +98,16 @@ public class WebhookController {
         for (Map.Entry<String, Integer> entry : hexCounts.entrySet()) {
             Map<String, Object> alt = new HashMap<>();
             alt.put("id", entry.getKey());
-            alt.put("values", Arrays.asList((double) entry.getValue()));
+            // FastAPI requires values as a dict {criteriaName: value}, NOT a list
+            Map<String, Double> valuesMap = new HashMap<>();
+            valuesMap.put("count", (double) entry.getValue());
+            alt.put("values", valuesMap);
             alts.add(alt);
         }
         matrix.put("alternatives", alts);
         
         try {
-            List<?> response = restTemplate.postForObject("http://localhost:8000/api/v1/ai/prioritize", matrix, List.class);
+            List<?> response = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/ai/prioritize", matrix, List.class);
             List<Map<String, Object>> result = new ArrayList<>();
             if (response != null) {
                 for (Object itemObj : response) {
@@ -108,9 +118,13 @@ public class WebhookController {
                     result.add(frontendItem);
                 }
             }
+            cachedHotspots = result;
+            lastCacheTime = System.currentTimeMillis();
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            System.err.println("[HOTSPOTS ERROR] " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Collections.emptyList());
         }
     }
 }

@@ -1,0 +1,10 @@
+{
+  "description": "This platform empowers policymakers by analyzing citizen feedback and infrastructure data to prioritize critical interventions for urban development.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
