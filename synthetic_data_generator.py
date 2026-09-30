@@ -3,6 +3,9 @@ import random
 import csv
 import psycopg2
 
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+
 DB_URL = "dbname=civictech user=postgres password=password host=127.0.0.1 port=5432"
 
 MUMBAI_LAT = 19.0760

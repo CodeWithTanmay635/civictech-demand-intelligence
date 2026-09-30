@@ -19,6 +19,9 @@ public class WebhookController {
     @Autowired
     private CitizenFeedbackRepository repository;
 
+    @org.springframework.beans.factory.annotation.Value("${AI_ENGINE_URL:http://127.0.0.1:8000}")
+    private String aiEngineUrl;
+
     private RestTemplate restTemplate = new RestTemplate();
 
     @PostMapping("/webhooks/citizen-feedback")
@@ -42,7 +45,7 @@ public class WebhookController {
             Map<String, String> semReq = new HashMap<>();
             semReq.put("text", payload.getFeedbackText());
             @SuppressWarnings("unchecked")
-            Map<String, Object> semRes = (Map<String, Object>) restTemplate.postForObject("http://127.0.0.1:8000/api/v1/ai/semantic/analyze", semReq, Map.class);
+            Map<String, Object> semRes = (Map<String, Object>) restTemplate.postForObject(aiEngineUrl + "/api/v1/ai/semantic/analyze", semReq, Map.class);
             if (semRes != null) {
                 feedback.setLanguage((String) semRes.get("detected_language"));
                 feedback.setOriginalText((String) semRes.get("original_text"));
@@ -81,7 +84,7 @@ public class WebhookController {
             req.put("longitude", fb.getLongitude());
             req.put("resolution", 9);
             try {
-                Map<?, ?> res = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/spatial/h3-index", req, Map.class);
+                Map<?, ?> res = restTemplate.postForObject(aiEngineUrl + "/api/v1/spatial/h3-index", req, Map.class);
                 if (res != null && res.containsKey("h3_index")) {
                     String hex = (String) res.get("h3_index");
                     hexCounts.put(hex, hexCounts.getOrDefault(hex, 0) + 1);
@@ -107,7 +110,7 @@ public class WebhookController {
         matrix.put("alternatives", alts);
         
         try {
-            List<?> response = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/ai/prioritize", matrix, List.class);
+            List<?> response = restTemplate.postForObject(aiEngineUrl + "/api/v1/ai/prioritize", matrix, List.class);
             List<Map<String, Object>> result = new ArrayList<>();
             if (response != null) {
                 for (Object itemObj : response) {

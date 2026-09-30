@@ -28,6 +28,9 @@ public class RecommendationController {
     @Autowired
     private RecommendedProjectRepository projectRepo;
 
+    @org.springframework.beans.factory.annotation.Value("${AI_ENGINE_URL:http://127.0.0.1:8000}")
+    private String aiEngineUrl;
+
     private RestTemplate restTemplate = new RestTemplate();
 
     private List<?> cachedRecommendations = null;
@@ -53,7 +56,7 @@ public class RecommendationController {
                 req.put("longitude", fb.getLongitude());
                 req.put("resolution", 9);
                 try {
-                    Map<?, ?> res = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/spatial/h3-index", req, Map.class);
+                    Map<?, ?> res = restTemplate.postForObject(aiEngineUrl + "/api/v1/spatial/h3-index", req, Map.class);
                     if (res != null && res.containsKey("h3_index")) {
                         String hex = (String) res.get("h3_index");
                         demandCounts.put(hex, demandCounts.getOrDefault(hex, 0) + 1);
@@ -119,7 +122,7 @@ public class RecommendationController {
         
         // 3. Call TOPSIS Endpoint
         try {
-            List<?> responseList = restTemplate.postForObject("http://127.0.0.1:8000/api/v1/ai/prioritize", matrix, List.class);
+            List<?> responseList = restTemplate.postForObject(aiEngineUrl + "/api/v1/ai/prioritize", matrix, List.class);
             
             List<Map<String, Object>> enrichedResults = new ArrayList<>();
             if (responseList != null) {
