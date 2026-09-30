@@ -2,11 +2,15 @@ import h3
 import random
 import csv
 import psycopg2
+import os
 
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 
-DB_URL = "dbname=civictech user=postgres password=password host=127.0.0.1 port=5432"
+DB_URL = os.getenv(
+    "DATABASE_URL",
+    "dbname=civictech user=postgres password=password host=127.0.0.1 port=5432"
+)
 
 MUMBAI_LAT = 19.0760
 MUMBAI_LNG = 72.8777
