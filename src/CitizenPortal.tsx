@@ -117,7 +117,7 @@ export default function CitizenPortal() {
     };
 
     try {
-      await fetch('http://localhost:8081/api/v1/webhooks/citizen-feedback', {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'}/api/v1/webhooks/citizen-feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

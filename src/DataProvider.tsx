@@ -15,13 +15,15 @@ const DataContext = createContext<DataContextType>({
   simulateImpact: async () => {} 
 });
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081';
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<Omit<DataContextType, 'simulateImpact'> & { error: string | null }>({ projects: [], hexCells: [], loading: true, error: null });
 
   const simulateImpact = async (id: number) => {
     // ... logic unchanged ...
     try {
-      const res = await fetch(`http://localhost:8081/api/v1/projects/${id}/simulate-impact`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/v1/projects/${id}/simulate-impact`, { method: 'POST' });
       if (res.ok) {
         const sim = await res.json();
         setData(prev => ({
@@ -66,11 +68,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       };
       
       const [demandRes, demoRes, infraRes, investRes, projRes] = await Promise.all([
-        fetchJson('http://localhost:8081/api/v1/hotspots'),
-        fetchJson('http://localhost:8081/api/v1/layers/demographics'),
-        fetchJson('http://localhost:8081/api/v1/layers/infrastructure'),
-        fetchJson('http://localhost:8081/api/v1/layers/investments'),
-        fetchJson('http://localhost:8081/api/v1/projects/recommendations?limit=10')
+        fetchJson(`${API_BASE}/api/v1/hotspots`),
+        fetchJson(`${API_BASE}/api/v1/layers/demographics`),
+        fetchJson(`${API_BASE}/api/v1/layers/infrastructure`),
+        fetchJson(`${API_BASE}/api/v1/layers/investments`),
+        fetchJson(`${API_BASE}/api/v1/projects/recommendations?limit=10`)
       ]);
       
       console.log(`API RESPONSE TIME: ${Date.now() - startTime}ms`);
