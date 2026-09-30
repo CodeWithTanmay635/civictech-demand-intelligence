@@ -23,11 +23,10 @@ services:
   # ── 2. Core API — Spring Boot ──────────────────────────────────────────────
   - type: web
     name: civictech-core-api
-    runtime: java
+    env: docker
     region: singapore
     plan: free
-    buildCommand: cd core-api && mvn -B -DskipTests package
-    startCommand: java -jar core-api/target/core-api-0.0.1-SNAPSHOT.jar
+    rootDir: core-api
     healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_DATASOURCE_URL
@@ -42,8 +41,6 @@ services:
         fromDatabase:
           name: civictech-postgres
           property: password
-      - key: SERVER_PORT
-        value: "10000"
       - key: AI_ENGINE_URL
         fromService:
           name: civictech-ai-engine
@@ -70,4 +67,3 @@ databases:
     region: singapore
     plan: free
     databaseName: civictech
-    user: postgres
