@@ -16,9 +16,15 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        sync: false   # set manually in Render dashboard
+        fromService:
+          type: web
+          name: civictech-core-api
+          envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_AI_ENGINE_URL
-        sync: false   # set manually in Render dashboard
+        fromService:
+          type: web
+          name: civictech-ai-engine
+          envVarKey: RENDER_EXTERNAL_URL
 
   # ── 2. Core API — Spring Boot ──────────────────────────────────────────────
   - type: web
